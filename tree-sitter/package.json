@@ -5,10 +5,14 @@
   "main": "bindings/node",
   "scripts": {
     "build": "tree-sitter generate",
-    "test": "tree-sitter parse ../testdata/clang_common_opts.mki"
+    "test": "tree-sitter test",
+    "pretty": "tree-sitter highlight"
   },
   "keywords": [],
-  "author": "",
+  "author": {
+    "email": "mikemikeb@protonmail.com",
+    "name": "Michael Belousov"
+  },
   "license": "ISC",
   "devDependencies": {
     "tree-sitter-cli": "^0.20.7"
