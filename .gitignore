@@ -249,18 +249,3 @@ $RECYCLE.BIN/
 
 # End of https://www.gitignore.io/api/python,linux,windows,osx,vim,emacs,sublimetext
 
-# Start of custom ignores
-private
-icons
-data
-ciscotraces
-.ciscotraces
-testdata
-test
-
-#this project generates svgs, don't commit them
-*.svg
-whatsup.conf
-# python importable data file
-snmppci.py
-

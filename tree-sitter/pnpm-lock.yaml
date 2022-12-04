@@ -1,0 +1,15 @@
+lockfileVersion: 5.4
+
+specifiers:
+  tree-sitter-cli: ^0.20.7
+
+devDependencies:
+  tree-sitter-cli: 0.20.7
+
+packages:
+
+  /tree-sitter-cli/0.20.7:
+    resolution: {integrity: sha512-MHABT8oCPr4D0fatsPo6ATQ9H4h9vHpPRjlxkxJs80tpfAEKGn6A1zU3eqfCKBcgmfZDe9CiL3rKOGMzYHwA3w==}
+    hasBin: true
+    requiresBuild: true
+    dev: true
