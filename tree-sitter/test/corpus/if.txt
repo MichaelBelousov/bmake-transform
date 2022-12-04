@@ -1,0 +1,27 @@
+==========
+complex if
+==========
+
+# PRG implies no asserts.
+%if defined (PRG)
+    %if defined (DEBUG)
+        %error Cannot define PRG and DEBUG.
+    %endif
+    %if !defined(NDEBUG) && !defined(PRG_NO_NDEBUG)
+        always:
+            |Setting NDEBUG=1 because PRG was set.
+        
+        NDEBUG = 1
+    %endif
+%endif
+
+---
+
+(source_file
+  (comment)
+  (if
+    (identifier)
+    (body
+      (diagnostic (restOfLine)))))
+  (var_assign (identifier) (restOfLine))
+  (append_assign (identifier) (restOfLine)))
