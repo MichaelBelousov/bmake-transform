@@ -4,11 +4,8 @@ node_modules
 ### tree-sitter
 # I'm not very happy about this one
 src
-!src/scanner.cc
-#binding.gyp # custom scanner required
 bindings
-# custom scanner required
-!bindings/rust/build.rs
 # or this
 Cargo.toml
+Cargo.lock
 

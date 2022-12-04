@@ -1,24 +1,21 @@
 module.exports = grammar({
   name: "bmake",
   rules: {
-    identifier: ($) => /[a-zA-Z_][a-zA-Z_0-9]*/,
-    //source_file: ($) => repeat($._stmt),
-    source_file: ($) => $.var_assign,
+    // NOTE: the first rule is the one is the top-level one!
+    source_file: ($) => repeat($._stmt),
+    identifier: ($) => /[a-zA-Z_][a-zA-Z0-9_]*/,
     _stmt: ($) => choice($.var_assign, $.append_assign),
     word: ($) => $.identifier,
     var_assign: ($) =>
       seq(field("identifier", $.identifier), "=", field("value", $.restOfLine)),
     append_assign: ($) =>
       seq(field("identifier", $.identifier), "+", field("value", $.restOfLine)),
+    restOfLine: ($) => /[^\n]*/,
+    comment: ($) => token(/#.*/),
   },
   // prettier-ignore
-  /*
   extras: ($) => [
-    /#[^\n]* /, // comments
-    / \t\n/ // whitespace
-  ],
-  */
-  externals: $ => [ 
-    $.restOfLine
+    $.comment,
+    /\s/, // whitespace
   ],
 });
