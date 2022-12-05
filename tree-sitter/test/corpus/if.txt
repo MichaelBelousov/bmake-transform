@@ -1,6 +1,6 @@
-==========
+================================================================================
 complex if
-==========
+================================================================================
 
 # PRG implies no asserts.
 %if defined (PRG)
@@ -15,13 +15,29 @@ complex if
     %endif
 %endif
 
----
+--------------------------------------------------------------------------------
 
 (source_file
   (comment)
   (if
-    (identifier)
+    (define)
     (body
-      (diagnostic (restOfLine)))))
-  (var_assign (identifier) (restOfLine))
-  (append_assign (identifier) (restOfLine)))
+      (if
+        (define)
+        (body
+          (diagnostic
+            (restOfLine))))
+      (if
+        (define)
+        (define)
+        (body
+          (rule
+            (always)
+            (build_command
+              (command_mod
+                (silent_echo))
+              (command
+                (restOfLine))))
+          (assign
+            (identifier)
+            (restOfLine)))))))

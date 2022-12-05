@@ -107,12 +107,15 @@ module.exports = grammar({
       choice(
         alias("~", $.ignore_status),
         alias("|", $.silent_echo),
-        alias("!", $.no_newline)
+        alias("!", $.no_newline),
+        $.builtin_command
       ),
 
     // FIXME: incomplete and lacking optional argument
     builtin_command: ($) =>
       seq("~", token.immediate(choice("current", "time", "task", "mkdir"))),
+
+    // FIXME: making command_mod optional (which it should be) is wreaking havoc on performance
     build_command: ($) => seq($.command_mod, $.command),
 
     rule: ($) =>
@@ -153,7 +156,7 @@ module.exports = grammar({
       choice(
         // unary
         prec(1, seq("!", $._expr)),
-        prec(1, alias(seq("defined", "(", $.identifier, ")"), $.define)),
+        prec(1, seq("defined", "(", alias($.identifier, $.is_defined), ")")),
         prec.left(2, seq($._expr, "==", $._expr)),
         prec.left(3, seq($._expr, "||", $._expr)),
         prec.left(4, seq($._expr, "&&", $._expr)),
