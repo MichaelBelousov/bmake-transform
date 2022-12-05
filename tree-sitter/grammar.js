@@ -1,12 +1,16 @@
 // https://bsw-wiki.bentley.com/bin/view.pl/Main/BmakeOverview
 
+const ident_regex = /[a-zA-Z_][a-zA-Z0-9_]*/;
+
 module.exports = grammar({
   name: "bmake",
   rules: {
     // NOTE: the first rule is the one is the top-level one!
-    source_file: ($) => repeat($._stmt),
-    body: ($) => repeat1($._stmt),
-    identifier: ($) => /[a-zA-Z_][a-zA-Z0-9_]*/,
+    source_file: ($) => repeat(choice($._stmt, $.rule)),
+    body: ($) => repeat1(choice($._stmt, $.rule)),
+    identifier: ($) => ident_regex,
+    // FIXME: probably need to allow escaping spaces or quoting or something
+    path: ($) => /[^\s]+/,
     _stmt: ($) =>
       choice(
         $.assign,
@@ -74,16 +78,53 @@ module.exports = grammar({
           "%endif"
         )
       ),
-    always: ($) => seq("always:", $.body),
+
+    dep: ($) => /[^,]*/,
+
+    deps: ($) => seq(repeat(seq($.dep, ",")), $.dep),
+
+    dep_dir_list: ($) => seq("{", seq(repeat(seq($.path, ";")), $.path), "}"),
+    dep_ext_list: ($) => seq("(", seq(repeat(seq($.path, ",")), $.path), ")"),
+
+    ext_decl: ($) => seq(".", token.immediate(ident_regex)),
+
+    dep_ext: ($) =>
+      choice(
+        $.ext_decl,
+        // TODO: create one-or-more delimited list abstraction
+        seq(
+          ".",
+          // REPORTME: can't do token.immediate here for some reason
+          optional($.dep_dir_list),
+          choice(field("exts", $.dep_ext_list), field("ext", $.identifier))
+        )
+      ),
+
+    target_ext: ($) => $.ext_decl,
+
+    command: ($) => $.restOfLine,
+    command_mod: ($) =>
+      choice(
+        alias("~", $.ignore_status),
+        alias("|", $.silent_echo),
+        alias("!", $.no_newline)
+      ),
+
+    // FIXME: incomplete and lacking optional argument
+    builtin_command: ($) =>
+      seq("~", token.immediate(choice("current", "time", "task", "mkdir"))),
+    build_command: ($) => seq($.command_mod, $.command),
+
+    rule: ($) =>
+      seq(
+        choice(alias("always", $.always), seq($.dep_ext, $.target_ext)),
+        ":",
+        // FIXME: probably need outdent support...
+        repeat($.build_command)
+      ),
 
     // also known as `built-in functions`
-    expansion_mod: ($) =>
-      choice(
-        alias("@basename", $.mod_basename_no_ext),
-        alias("@dir", $.mod_dirname),
-        alias("@suffix", $.mod_ext),
-        alias("@nonsuffix", $.mod_path_no_ext)
-      ),
+    expansion_mod: ($) => /@\w+/,
 
     expand_arg: ($) =>
       choice(
