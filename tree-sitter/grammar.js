@@ -152,6 +152,8 @@ module.exports = grammar({
         $.non_recursive_expand
       ),
 
+    string: ($) => /"[^"]"/,
+
     _expr: ($) =>
       choice(
         // unary
@@ -160,6 +162,7 @@ module.exports = grammar({
         prec.left(2, seq($._expr, "==", $._expr)),
         prec.left(3, seq($._expr, "||", $._expr)),
         prec.left(4, seq($._expr, "&&", $._expr)),
+        $.string,
         $.expand
       ),
 
