@@ -14,6 +14,22 @@ __author__ = 'Michael Belousov'
 
 import tree_sitter
 
+def zigify(n: tree_sitter.Node):
+    to_zig[n.type]()
+
+diagnostic_headers = {
+    "%error": "Error occurred: {s}"
+}
+
+to_zig = {
+    'body': lambda n: sum(map(zigify, n.named_children)),
+    'source_file': lambda n: to_zig['body'](n),
+    'if': lambda n: f'if ({zigify(n.child_by_field_name("cond"))}) {{ {zigify(n.named_children[1])} }}',
+    'diagnostic': lambda n: f'std.debug.print({diagnostic_headers[n.children[0].type]}, .{{"{n.children[1].text}"}})',
+}
+
+
+
 tree_sitter.Language.build_library(
     'build/bmake.so',
     [
@@ -25,7 +41,6 @@ BMAKE_LANG = tree_sitter.Language('build/bmake.so', 'bmake')
 
 bmake_parser = tree_sitter.Parser()
 bmake_parser.set_language(BMAKE_LANG)
-
 
 if __name__ == '__main__':
     import sys

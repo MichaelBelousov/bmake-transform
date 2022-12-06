@@ -60,14 +60,7 @@ module.exports = grammar({
       choice(
         // FIXME: so apparently `if` will expand defined macros without expansion syntax,
         // so `if` must support tokenizing the condition line
-        seq(
-          // do I need a custom scanner to really capture conditions?
-          alias($.if_start, "if"),
-          field("cond", $._expr),
-          "\n",
-          $.body,
-          "%endif"
-        ),
+        seq($.if_start, field("cond", $._expr), "\n", $.body, "%endif"),
         seq(
           alias($.if_start, "if"),
           field("cond", $._expr),
