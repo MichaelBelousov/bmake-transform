@@ -54,15 +54,15 @@ module.exports = grammar({
       ),
     restOfLine: ($) => /[^\n]*/,
     comment: ($) => token(/#.*/),
-    if_start: ($) =>
+    if_type: ($) =>
       choice("%if", "%ifndef", "%ifdef", "%elif", "%iffile", "%ifnofile"),
     if: ($) =>
       choice(
         // FIXME: so apparently `if` will expand defined macros without expansion syntax,
         // so `if` must support tokenizing the condition line
-        seq($.if_start, field("cond", $._expr), "\n", $.body, "%endif"),
+        seq($.if_type, field("cond", $._expr), "\n", $.body, "%endif"),
         seq(
-          alias($.if_start, "if"),
+          $.if_type,
           field("cond", $._expr),
           "\n",
           $.body,
@@ -98,8 +98,9 @@ module.exports = grammar({
     command: ($) => $.restOfLine,
     command_mod: ($) =>
       choice(
-        alias("~", $.ignore_status),
+        alias("-", $.ignore_status),
         alias("|", $.silent_echo),
+        alias("@", $.never_echo),
         alias("!", $.no_newline),
         $.builtin_command
       ),
@@ -109,14 +110,18 @@ module.exports = grammar({
       seq("~", token.immediate(choice("current", "time", "task", "mkdir"))),
 
     // FIXME: making command_mod optional (which it should be) is wreaking havoc on performance
+    // maybe a GLR parser issue that requires accomodations in the grammar
     build_command: ($) => seq($.command_mod, $.command),
 
     rule: ($) =>
       seq(
-        choice(alias("always", $.always), seq($.dep_ext, $.target_ext)),
+        choice(
+          alias("always", $.always),
+          alias(seq($.dep_ext, $.target_ext), $.target_decl)
+        ),
         ":",
         // FIXME: probably need outdent support...
-        repeat($.build_command)
+        alias(repeat($.build_command), $.rule_body)
       ),
 
     // also known as `built-in functions`
@@ -147,17 +152,17 @@ module.exports = grammar({
 
     string: ($) => /"[^"]"/,
 
+    // unary
+    not: ($) => prec(1000, seq("!", $._expr)),
+    is_defined: ($) => prec(1000, seq("defined", "(", $.identifier, ")")),
+
+    // binary
+    eq: ($) => prec.left(2, seq($._expr, "==", $._expr)),
+    or: ($) => prec.left(3, seq($._expr, "||", $._expr)),
+    and: ($) => prec.left(4, seq($._expr, "&&", $._expr)),
+
     _expr: ($) =>
-      choice(
-        // unary
-        prec(1, seq("!", $._expr)),
-        prec(1, seq("defined", "(", alias($.identifier, $.is_defined), ")")),
-        prec.left(2, seq($._expr, "==", $._expr)),
-        prec.left(3, seq($._expr, "||", $._expr)),
-        prec.left(4, seq($._expr, "&&", $._expr)),
-        $.string,
-        $.expand
-      ),
+      choice($.not, $.is_defined, $.eq, $.or, $.and, $.string, $.expand),
 
     // technically a directive
     diagnostic: ($) =>

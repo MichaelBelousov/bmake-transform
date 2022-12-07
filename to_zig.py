@@ -13,10 +13,15 @@ python -m unittest to_zig.py
 __author__ = 'Michael Belousov'
 
 import tree_sitter
+import unittest
+# from collections import defaultdict
 
 def zigify(n: tree_sitter.Node):
     if n.type not in to_zig:
-        raise KeyError(f"unknown ast node type: '{n.type}'")
+        if not n.is_named:
+            return n.text.decode('utf8')
+        else:
+            raise KeyError(f"unknown named ast node type: '{n.type}'")
     return to_zig[n.type](n)
 
 diagnostic_headers = {
@@ -27,25 +32,77 @@ header = """\
 const std = @import("std");
 """
 
+def build_command_no_newline(n: tree_sitter.Node) -> str:
+    cmd = n.children[1].text.decode("utf8")
+    return f'''\
+        if (!silent) {{
+            std.debug.print("{cmd}");
+            const status = std.runCmd("{cmd}");
+            if (status != 0)
+                return error.CmdFailed;
+        }}\
+    '''
+
 to_zig = {
-    'body': lambda n: header + '\n'.join(map(zigify, n.children)),
-    'source_file': lambda n: to_zig['body'](n),
-    'if': lambda n: f'if ({zigify(n.child_by_field_name("cond"))}) {{\n{zigify(n.named_children[1])}\n}}',
-    'diagnostic': lambda n: f'std.debug.print("{diagnostic_headers[n.children[0].type]}", .{{"{n.children[1].text.decode("utf8")}"}});\n',
+    'body': lambda n: '\n'.join(map(zigify, n.children)),
+    'source_file': lambda n: header + to_zig['body'](n),
+    'if': lambda n: (
+        f'if ({zigify(n.child_by_field_name("cond"))}) {{\n{zigify(n.named_children[2])}\n}}'
+        + (''
+          if len(n.named_children) == 3
+          else f' else {{\n{zigify(n.named_children[3])}}}'
+          )
+        + '\n'
+    ),
+    'diagnostic': lambda n: f'std.debug.print("{diagnostic_headers[n.children[0].type]}", .{{"{n.children[1].text.decode("utf8")[1:]}"}});\n',
     'comment': lambda n: f'//{n.text.decode("utf8")[1:]}\n',
     'is_defined': lambda n: to_zig['identifier'](n),
     'identifier': lambda n: n.text.decode('utf8'),
-    # NOTE: need to figure out how to ignore these
+    'rule': lambda n: zigify(n.named_children[1])
+                      if n.named_children[0].type == 'always'
+                      else f'std.build.AddBuildStep("{n.named_children[0].text}");',
+    'rule_body': lambda n: '{\n' + '\n'.join(map(zigify, n.children)) + '\n}',
+    'build_command': lambda n: {
+        'silent_echo': f'std.debug.print("\\n{n.children[1].text.decode("utf8")}")\n',
+        'no_newline': build_command_no_newline,
+    }[n.children[0].children[0].type],
+    'assign': lambda n: f'var {zigify(n.child_by_field_name("identifier"))} = "{zigify(n.child_by_field_name("value"))}";',
+    'restOfLine': lambda n: n.text.decode('utf8'),
+    'not': lambda n: f'!{zigify(n.children[1])}',
+    'and': lambda n: f'{zigify(n.children[0])} && {zigify(n.children[2])}',
+    # known literal nodes
     'defined': lambda _: 'std.env.getVar',
-    '!': lambda _: '!',
-    '(': lambda _: '(',
-    ')': lambda _: ')',
 }
 
 tree_sitter.Language.build_library(
     'build/bmake.so',
     ['tree-sitter']
 )
+
+class _TransformTests(unittest.TestCase):
+    def test_if(self):
+        ast = bmake_parser.parse(b'''\
+            # PRG implies no asserts.
+            %if defined (PRG)
+                %if defined (DEBUG)
+                    %error Cannot define PRG and DEBUG.
+                %endif
+                %if !defined(NDEBUG) && !defined(PRG_NO_NDEBUG)
+                    always:
+                        |Setting NDEBUG=1 because PRG was set.
+                    
+                    NDEBUG = 1
+                %endif
+            %endif
+        ''')
+
+        tformed = zigify(ast.root_node)
+
+        # TODO: dedent (if I used zig I could use the nice \\ multiline string literals...)
+        # NOTE: I actually did start bindings for tree_sitter in zig in another project
+        self.assertEqual(tformed, '''\
+            if(){}
+''')
 
 BMAKE_LANG = tree_sitter.Language('build/bmake.so', 'bmake')
 
