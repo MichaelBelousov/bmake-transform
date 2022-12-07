@@ -1,0 +1,13 @@
+
+# PRG implies no asserts.
+%if defined (PRG)
+    %if defined (DEBUG)
+        %error Cannot define PRG and DEBUG.
+    %endif
+    %if !defined(NDEBUG) && !defined(PRG_NO_NDEBUG)
+        always:
+            |Setting NDEBUG=1 because PRG was set.
+        
+        NDEBUG = 1
+    %endif
+%endif
