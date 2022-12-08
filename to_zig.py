@@ -19,6 +19,7 @@ import unittest
 def zigify(n: tree_sitter.Node):
     if n.type not in to_zig:
         if not n.is_named:
+            print(f"warning: unknown node type: '{n.type}'", file=sys.stderr)
             return n.text.decode('utf8')
         else:
             raise KeyError(f"unknown named ast node type: '{n.type}'")
@@ -56,7 +57,7 @@ to_zig = {
     ),
     'diagnostic': lambda n: f'std.debug.print("{diagnostic_headers[n.children[0].type]}", .{{"{n.children[1].text.decode("utf8")[1:]}"}});\n',
     'comment': lambda n: f'//{n.text.decode("utf8")[1:]}\n',
-    'is_defined': lambda n: to_zig['identifier'](n),
+    'is_defined': lambda n: f'std.env.getVar("{zigify(n.named_children[0])}")',
     'identifier': lambda n: n.text.decode('utf8'),
     'rule': lambda n: zigify(n.named_children[1])
                       if n.named_children[0].type == 'always'
@@ -70,8 +71,6 @@ to_zig = {
     'restOfLine': lambda n: n.text.decode('utf8'),
     'not': lambda n: f'!{zigify(n.children[1])}',
     'and': lambda n: f'{zigify(n.children[0])} && {zigify(n.children[2])}',
-    # known literal nodes
-    'defined': lambda _: 'std.env.getVar',
 }
 
 tree_sitter.Language.build_library(

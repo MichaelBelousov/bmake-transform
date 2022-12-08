@@ -21,7 +21,7 @@ module.exports = grammar({
         $.if
       ),
 
-    word: ($) => choice("defined", $.identifier),
+    word: ($) => $.identifier,
 
     assign: ($) =>
       // NOTE: will have to manually evaluate `$()` in restOfLine
