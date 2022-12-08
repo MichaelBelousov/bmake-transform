@@ -31,6 +31,12 @@ diagnostic_headers = {
 
 header = """\
 const std = @import("std");
+
+pub fn main() void {
+"""
+
+footer = """\
+}
 """
 
 def build_command_no_newline(n: tree_sitter.Node) -> str:
@@ -46,7 +52,7 @@ def build_command_no_newline(n: tree_sitter.Node) -> str:
 
 to_zig = {
     'body': lambda n: '\n'.join(map(zigify, n.children)),
-    'source_file': lambda n: header + to_zig['body'](n),
+    'source_file': lambda n: header + to_zig['body'](n) + footer,
     'if': lambda n: (
         f'if ({zigify(n.child_by_field_name("cond"))}) {{\n{zigify(n.named_children[2])}\n}}'
         + (''
@@ -64,13 +70,13 @@ to_zig = {
                       else f'std.build.AddBuildStep("{n.named_children[0].text}");',
     'rule_body': lambda n: '{\n' + '\n'.join(map(zigify, n.children)) + '\n}',
     'build_command': lambda n: {
-        'silent_echo': f'std.debug.print("\\n{n.children[1].text.decode("utf8")}")\n',
+        'silent_echo': f'std.debug.print("\\n{n.children[1].text.decode("utf8")}");\n',
         'no_newline': build_command_no_newline,
     }[n.children[0].children[0].type],
     'assign': lambda n: f'var {zigify(n.child_by_field_name("identifier"))} = "{zigify(n.child_by_field_name("value"))}";',
     'restOfLine': lambda n: n.text.decode('utf8'),
     'not': lambda n: f'!{zigify(n.children[1])}',
-    'and': lambda n: f'{zigify(n.children[0])} && {zigify(n.children[2])}',
+    'and': lambda n: f'{zigify(n.children[0])} and {zigify(n.children[2])}',
 }
 
 tree_sitter.Language.build_library(
@@ -116,11 +122,23 @@ if __name__ == '__main__':
         description="convert to bmake files to zig"
     )
     argparser.add_argument("-f", "--file", help="file to parse", default=sys.stdin)
-    argparser.add_argument("-o", "--out", help="directory to output to", default=os.path.join(os.getcwd(), "out"))
+    argparser.add_argument("-o", "--out", help="file/directory to output to", default=os.path.join(os.getcwd(), "out"))
+    argparser.add_argument("-x", "--overwrite", help="overwrite --out", default=False, action="store_true")
+    argparser.add_argument("-z", "--zig-fmt", help="run zig fmt on the output", action="store_true")
     args = argparser.parse_args()
     if isinstance(args.file, str):
         args.file = open(args.file, 'r')
     src = bytes(args.file.read(), 'utf8')
     ast = bmake_parser.parse(src)
 
-    print(zigify(ast.root_node))
+    with open(args.out, 'w' if args.overwrite else 'x') as out:
+        out.write(zigify(ast.root_node))
+
+    if args.zig_fmt:
+        import subprocess
+        subprocess.call(["zig", "fmt", args.out])
+
+    with open(args.out) as output:
+        for l in output:
+            print(l, end="")
+
