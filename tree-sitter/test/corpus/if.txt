@@ -7,7 +7,7 @@ complex if
     %if defined (DEBUG)
         %error Cannot define PRG and DEBUG.
     %endif
-    %if !defined(NDEBUG) && !defined(PRG_NO_NDEBUG)
+    %if !defined(NDEBUG) && PRG_NO_NDEBUG == "yes"
         always:
             |Setting NDEBUG=1 because PRG was set.
         

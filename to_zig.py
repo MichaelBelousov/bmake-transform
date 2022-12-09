@@ -68,7 +68,7 @@ to_zig = {
         + '\n'
     ),
     'diagnostic': lambda n: f'std.debug.print("{diagnostic_headers[n.children[0].type]}", .{{"{n.children[1].text.decode("utf8")[1:]}"}});\n',
-    'comment': lambda n: f'//{n.text.decode("utf8")[1:]}\n',
+    'comment': lambda n: f'//{n.text.decode("utf8")[1:]}',
     'is_defined': lambda n: f'std.env.getVar("{zigify(n.named_children[0])}")',
     'identifier': lambda n: n.text.decode('utf8'),
     'rule': lambda n: zigify(n.named_children[1])
@@ -82,13 +82,14 @@ to_zig = {
     'assign': lambda n: f'var {zigify(n.child_by_field_name("identifier"))} = "{zigify(n.child_by_field_name("value"))}";',
     'append_assign': lambda n: f'{zigify(n.child_by_field_name("identifier"))} += "{zigify(n.child_by_field_name("value"))}";',
     'restOfLine': lambda n: n.text.decode('utf8'),
+    'string': lambda n: f'"{n.text.decode("utf8")}"',
     'not': lambda n: f'!{zigify(n.children[1])}',
     'and': lambda n: f'{zigify(n.children[0])} and {zigify(n.children[2])}',
     'eq': lambda n: f'{zigify(n.children[0])} == {zigify(n.children[2])}',
     'expand': lambda n: zigify(n.children[0]),
     'expand_arg': lambda n: zigify(n.children[0]),
     'recursive_expand': lambda n: f'context.{zigify(n.named_children[0])}',
-    'ERROR': lambda n: f'##### ERROR{NL}{NL.join("# " + l for l in n.text.decode("utf8"))}{NL}##### END ERROR',
+    'ERROR': lambda n: f'///// ERROR{NL}{NL.join("///// " + l for l in n.text.decode("utf8").split(NL))}{NL}///// END ERROR{NL}',
     ####
     'var_basename_no_ext': lambda n: 'getCurrentFileName()',
     ####
@@ -145,10 +146,12 @@ if __name__ == '__main__':
     argparser = argparse.ArgumentParser(
         description="convert to bmake files to zig"
     )
+    # FIXME: these arguments are crap and I almost intentionally chose bad names in some cases
     argparser.add_argument("-f", "--file", help="file to parse", default=sys.stdin)
     argparser.add_argument("-o", "--out", help="file/directory to output to", default=os.path.join(os.getcwd(), "out"))
     argparser.add_argument("-x", "--overwrite", help="overwrite --out", default=False, action="store_true")
     argparser.add_argument("-z", "--zig-fmt", help="run zig fmt on the output", action="store_true")
+    argparser.add_argument("-e", "--echo", help="echo result to stdout", action="store_true")
     args = argparser.parse_args()
     if isinstance(args.file, str):
         args.file = open(args.file, 'r')
@@ -161,7 +164,8 @@ if __name__ == '__main__':
         import subprocess
         subprocess.call(["zig", "fmt", args.out])
 
-    with open(args.out) as output:
-        for l in output:
-            print(l, end="")
+    if args.echo:
+        with open(args.out) as output:
+            for l in output:
+                print(l, end="")
 

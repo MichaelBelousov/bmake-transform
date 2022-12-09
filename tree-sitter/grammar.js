@@ -150,7 +150,7 @@ module.exports = grammar({
         $.non_recursive_expand
       ),
 
-    string: ($) => /"[^"]"/,
+    string: ($) => /"[^"]*"/,
 
     // unary
     not: ($) => prec(1000, seq("!", $._expr)),
