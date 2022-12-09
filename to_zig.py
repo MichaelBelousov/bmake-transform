@@ -16,6 +16,7 @@ import tree_sitter
 import unittest
 # from collections import defaultdict
 
+# TODO: align name better with zigify
 def zigify(n: tree_sitter.Node):
     if n.type not in to_zig:
         if not n.is_named:
@@ -26,7 +27,9 @@ def zigify(n: tree_sitter.Node):
     return to_zig[n.type](n)
 
 diagnostic_headers = {
-    "%error": "Error occurred: {s}"
+    "%error": "Error occurred: {s}",
+    "%message": "Message: {s}",
+    "%warn": "Warning: {s}",
 }
 
 header = """\
@@ -49,6 +52,9 @@ def build_command_no_newline(n: tree_sitter.Node) -> str:
                 return error.CmdFailed;
         }}\
     '''
+
+# for f-strings
+NL = '\n'
 
 to_zig = {
     'body': lambda n: '\n'.join(map(zigify, n.children)),
@@ -78,6 +84,15 @@ to_zig = {
     'restOfLine': lambda n: n.text.decode('utf8'),
     'not': lambda n: f'!{zigify(n.children[1])}',
     'and': lambda n: f'{zigify(n.children[0])} and {zigify(n.children[2])}',
+    'eq': lambda n: f'{zigify(n.children[0])} == {zigify(n.children[2])}',
+    'expand': lambda n: zigify(n.children[0]),
+    'expand_arg': lambda n: zigify(n.children[0]),
+    'recursive_expand': lambda n: f'context.{zigify(n.named_children[0])}',
+    'ERROR': lambda n: f'##### ERROR{NL}{NL.join("# " + l for l in n.text.decode("utf8"))}{NL}##### END ERROR',
+    ####
+    'var_basename_no_ext': lambda n: 'getCurrentFileName()',
+    ####
+
     # NOTE: this is a harder one. May have to perform inclusions before passing the results to tree_parser.
     # the same could be said about eval too
     'include': lambda n: transform_text(open(n.children[1], 'r').open())
