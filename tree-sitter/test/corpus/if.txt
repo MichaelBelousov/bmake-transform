@@ -12,6 +12,7 @@ complex if
             |Setting NDEBUG=1 because PRG was set.
         
         NDEBUG = 1
+        NDEBUG + 1
     %endif
 %endif
 
@@ -20,24 +21,38 @@ complex if
 (source_file
   (comment)
   (if
-    (define)
+    (if_type)
+    (is_defined
+      (identifier))
     (body
       (if
-        (define)
+        (if_type)
+        (is_defined
+          (identifier))
         (body
           (diagnostic
             (restOfLine))))
       (if
-        (define)
-        (define)
+        (if_type)
+        (and
+          (not
+            (is_defined
+              (identifier)))
+          (not
+            (is_defined
+              (identifier))))
         (body
           (rule
             (always)
-            (build_command
-              (command_mod
-                (silent_echo))
-              (command
-                (restOfLine))))
+            (rule_body
+              (build_command
+                (command_mod
+                  (silent_echo))
+                (command
+                  (restOfLine)))))
           (assign
+            (identifier)
+            (restOfLine))
+          (append_assign
             (identifier)
             (restOfLine)))))))

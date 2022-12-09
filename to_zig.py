@@ -74,9 +74,13 @@ to_zig = {
         'no_newline': build_command_no_newline,
     }[n.children[0].children[0].type],
     'assign': lambda n: f'var {zigify(n.child_by_field_name("identifier"))} = "{zigify(n.child_by_field_name("value"))}";',
+    'append_assign': lambda n: f'{zigify(n.child_by_field_name("identifier"))} += "{zigify(n.child_by_field_name("value"))}";',
     'restOfLine': lambda n: n.text.decode('utf8'),
     'not': lambda n: f'!{zigify(n.children[1])}',
     'and': lambda n: f'{zigify(n.children[0])} and {zigify(n.children[2])}',
+    # NOTE: this is a harder one. May have to perform inclusions before passing the results to tree_parser.
+    # the same could be said about eval too
+    'include': lambda n: transform_text(open(n.children[1], 'r').open())
 }
 
 tree_sitter.Language.build_library(
@@ -101,11 +105,11 @@ class _TransformTests(unittest.TestCase):
             %endif
         ''')
 
-        tformed = zigify(ast.root_node)
+        transformed = zigify(ast.root_node)
 
         # TODO: dedent (if I used zig I could use the nice \\ multiline string literals...)
         # NOTE: I actually did start bindings for tree_sitter in zig in another project
-        self.assertEqual(tformed, '''\
+        self.assertEqual(transformed, '''\
             if(){}
 ''')
 
@@ -113,6 +117,11 @@ BMAKE_LANG = tree_sitter.Language('build/bmake.so', 'bmake')
 
 bmake_parser = tree_sitter.Parser()
 bmake_parser.set_language(BMAKE_LANG)
+
+def transform_text(text: str) -> str:
+    src = bytes(text, 'utf8')
+    ast = bmake_parser.parse(src)
+    return zigify(ast.root_node)
 
 if __name__ == '__main__':
     import sys
@@ -128,11 +137,10 @@ if __name__ == '__main__':
     args = argparser.parse_args()
     if isinstance(args.file, str):
         args.file = open(args.file, 'r')
-    src = bytes(args.file.read(), 'utf8')
-    ast = bmake_parser.parse(src)
+    
 
     with open(args.out, 'w' if args.overwrite else 'x') as out:
-        out.write(zigify(ast.root_node))
+        out.write(transform_text(args.file.read()))
 
     if args.zig_fmt:
         import subprocess
