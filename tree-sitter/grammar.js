@@ -62,13 +62,13 @@ module.exports = grammar({
             seq("%if", field("cond", $._expr)),
             seq("%ifdef", field("cond", $.identifier)),
             seq("%ifndef", field("cond", $.identifier)),
-            seq("%iffile", field("path", $.restOfLine)),
-            seq("%ifnofile", field("path", $.restOfLine))
+            seq("%iffile", field("cond", $.restOfLine)),
+            seq("%ifnofile", field("cond", $.restOfLine))
           ),
           "\n",
           $.body,
-          repeat(seq("%elif", $.body)),
-          optional(seq("%else", $.body)),
+          repeat(alias(seq("%elif", $.body), $.elif_clause)),
+          optional(alias(seq("%else", $.body), $.else_clause)),
           "%endif"
         )
       ),

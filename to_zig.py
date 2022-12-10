@@ -60,11 +60,11 @@ to_zig = {
     'body': lambda n: '\n'.join(map(zigify, n.children)),
     'source_file': lambda n: header + to_zig['body'](n) + footer,
     'if': lambda n: (
-        f'if ({zigify(n.child_by_field_name("cond"))}) {{\n{zigify(n.named_children[2])}\n}}'
-        + (''
-          if len(n.named_children) == 3
-          else f' else {{\n{zigify(n.named_children[3])}}}'
-          )
+        f'if ({zigify(n.child_by_field_name("cond"))}) {{\n{zigify(n.named_children[1])}\n}}'
+        # FIXME: just serialize all nodes, this is destroying comments!
+        + ''.join(f'''{
+                {b"%elseif": "else if", b"%else": "else"}[c.text]
+            } {{\n{zigify(c)}}}''' for c in [c for c in n.named_children[2:-1] if c.type in ('else_clause', 'elif_clause')])
         + '\n'
     ),
     'diagnostic': lambda n: f'std.debug.print("{diagnostic_headers[n.children[0].type]}", .{{"{n.children[1].text.decode("utf8")[1:]}"}});\n',
