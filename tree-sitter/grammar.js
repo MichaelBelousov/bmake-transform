@@ -54,20 +54,21 @@ module.exports = grammar({
       ),
     restOfLine: ($) => /[^\n]*/,
     comment: ($) => token(/#.*/),
-    if_type: ($) =>
-      choice("%if", "%ifndef", "%ifdef", "%elif", "%iffile", "%ifnofile"),
+
     if: ($) =>
       choice(
-        // FIXME: so apparently `if` will expand defined macros without expansion syntax,
-        // so `if` must support tokenizing the condition line
-        seq($.if_type, field("cond", $._expr), "\n", $.body, "%endif"),
         seq(
-          $.if_type,
-          field("cond", $._expr),
+          choice(
+            seq("%if", field("cond", $._expr)),
+            seq("%ifdef", field("cond", $.identifier)),
+            seq("%ifndef", field("cond", $.identifier)),
+            seq("%iffile", field("path", $.restOfLine)),
+            seq("%ifnofile", field("path", $.restOfLine))
+          ),
           "\n",
           $.body,
-          "%else",
-          $.body,
+          repeat(seq("%elif", $.body)),
+          optional(seq("%else", $.body)),
           "%endif"
         )
       ),
@@ -162,7 +163,16 @@ module.exports = grammar({
     and: ($) => prec.left(4, seq($._expr, "&&", $._expr)),
 
     _expr: ($) =>
-      choice($.not, $.is_defined, $.eq, $.or, $.and, $.string, $.expand),
+      choice(
+        $.not,
+        $.is_defined,
+        $.eq,
+        $.or,
+        $.and,
+        $.string,
+        $.expand,
+        $.identifier
+      ),
 
     // technically a directive
     diagnostic: ($) =>

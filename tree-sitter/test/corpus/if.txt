@@ -4,7 +4,7 @@ complex if
 
 # PRG implies no asserts.
 %if defined (PRG)
-    %if defined (DEBUG)
+    %ifndef DEBUG
         %error Cannot define PRG and DEBUG.
     %endif
     %if !defined(NDEBUG) && PRG_NO_NDEBUG == "yes"
@@ -21,26 +21,22 @@ complex if
 (source_file
   (comment)
   (if
-    (if_type)
     (is_defined
       (identifier))
     (body
       (if
-        (if_type)
-        (is_defined
-          (identifier))
+        (identifier)
         (body
           (diagnostic
             (restOfLine))))
       (if
-        (if_type)
-        (and
-          (not
-            (is_defined
-              (identifier)))
-          (not
-            (is_defined
-              (identifier))))
+        (eq
+          (and
+            (not
+              (is_defined
+                (identifier)))
+            (identifier))
+          (string))
         (body
           (rule
             (always)

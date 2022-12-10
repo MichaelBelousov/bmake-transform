@@ -68,6 +68,9 @@ to_zig = {
         + '\n'
     ),
     'diagnostic': lambda n: f'std.debug.print("{diagnostic_headers[n.children[0].type]}", .{{"{n.children[1].text.decode("utf8")[1:]}"}});\n',
+    # NOTE: may want to try to do some light detection attempts of commented out code and convert that...
+    # in fact, just running bmake_parser.parse on each comment (minus header) and checking for errors is a slow
+    # but somewhat already working method
     'comment': lambda n: f'//{n.text.decode("utf8")[1:]}',
     'is_defined': lambda n: f'std.env.getVar("{zigify(n.named_children[0])}")',
     'identifier': lambda n: n.text.decode('utf8'),
