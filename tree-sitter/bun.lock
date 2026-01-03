@@ -1,0 +1,19 @@
+{
+  "lockfileVersion": 1,
+  "workspaces": {
+    "": {
+      "name": "tree-sitter-bmake",
+      "dependencies": {
+        "nan": "^2.17.0",
+      },
+      "devDependencies": {
+        "tree-sitter-cli": "^0.20.7",
+      },
+    },
+  },
+  "packages": {
+    "nan": ["nan@2.24.0", "", {}, "sha512-Vpf9qnVW1RaDkoNKFUvfxqAbtI8ncb8OJlqZ9wwpXzWPEsvsB1nvdUi6oYrHIkQ1Y/tMDnr1h4nczS0VB9Xykg=="],
+
+    "tree-sitter-cli": ["tree-sitter-cli@0.20.8", "", { "bin": { "tree-sitter": "cli.js" } }, "sha512-XjTcS3wdTy/2cc/ptMLc/WRyOLECRYcMTrSWyhZnj1oGSOWbHLTklgsgRICU3cPfb0vy+oZCC33M43u6R1HSCA=="],
+  }
+}

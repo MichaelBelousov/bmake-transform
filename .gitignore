@@ -249,3 +249,5 @@ $RECYCLE.BIN/
 
 # End of https://www.gitignore.io/api/python,linux,windows,osx,vim,emacs,sublimetext
 
+
+*.a

@@ -1,0 +1,9 @@
+[project]
+name = "bmake-transform"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "tree-sitter==0.20.4",
+]
